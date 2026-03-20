@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Vault Sentinel — Zombie API Defence Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+/* ── RESET & BASE ── */
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --navy:#0D1B2A; --navy2:#111D2E; --navy3:#0A1628;
+  --blue:#1B3A6B; --mid:#2563EB; --cyan:#0EA5E9;
+  --red:#DC2626; --red2:#EF4444;
+  --teal:#0D9488; --teal2:#14B8A6;
+  --amber:#D97706; --amber2:#F59E0B;
+  --green:#16A34A; --green2:#22C55E;
+  --purp:#7C3AED;
+  --white:#FFFFFF; --text:#1E293B;
+  --muted:#64748B; --muted2:#94A3B8;
+  --light:#F1F5F9; --light2:#E2E8F0;
+  --border:#E2E8F0; --dborder:#1E3A5F;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Inter',system-ui,sans-serif;
+}
+html,body{font-family:var(--sans);background:var(--white);color:var(--text);font-size:14px;line-height:1.6;}
+button{cursor:pointer;font-family:var(--sans);}
+input,select{font-family:var(--sans);}
+
+/* ── PAGES ── */
+.page{display:none;}
+.page.active{display:block;}
+
+/* ── SHARED NAV ── */
+.top-nav{
+  height:52px;background:var(--navy);display:flex;align-items:center;
+  padding:0 32px;gap:24px;position:sticky;top:0;z-index:200;
+  border-bottom:1px solid var(--dborder);
+}
+.nav-logo{font-size:15px;font-weight:600;color:var(--white);letter-spacing:.04em;cursor:pointer;}
+.nav-logo span{color:#60A5FA;}
+.nav-links{display:flex;gap:20px;margin-left:auto;}
+.nav-link{font-size:12px;color:var(--muted2);cursor:pointer;transition:color .15s;border:none;background:none;padding:0;}
+.nav-link:hover{color:var(--white);}
+.nav-cta{padding:6px 16px;border-radius:6px;background:var(--red);color:var(--white);font-size:12px;font-weight:500;border:none;margin-left:8px;}
+.nav-status{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--teal2);}
+.nav-status::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal2);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+/* ── DASHBOARD LAYOUT ── */
+.db-wrap{display:flex;height:calc(100vh - 52px);}
+.db-sidebar{
+  width:200px;background:var(--navy2);border-right:1px solid var(--dborder);
+  display:flex;flex-direction:column;padding:12px 0;flex-shrink:0;overflow-y:auto;
+}
+.db-content{flex:1;overflow-y:auto;background:var(--light);}
+.db-right{
+  width:230px;background:var(--navy2);border-left:1px solid var(--dborder);
+  overflow-y:auto;flex-shrink:0;padding:14px;
+}
+.sidebar-section{font-size:9px;font-weight:600;letter-spacing:.1em;color:#334155;text-transform:uppercase;padding:10px 16px 4px;}
+.sidebar-item{
+  display:flex;align-items:center;gap:8px;padding:8px 16px;font-size:12px;
+  color:var(--muted2);cursor:pointer;border-left:2px solid transparent;transition:all .15s;
+}
+.sidebar-item:hover{color:var(--white);background:rgba(255,255,255,.04);}
+.sidebar-item.active{color:#60A5FA;border-left-color:#60A5FA;background:rgba(37,99,235,.08);}
+.sidebar-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.sidebar-badge{margin-left:auto;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:600;}
+.badge-red{background:rgba(220,38,38,.15);color:var(--red2);}
+.badge-amber{background:rgba(215,119,6,.15);color:var(--amber2);}
+.badge-teal{background:rgba(13,148,136,.15);color:var(--teal2);}
+
+/* ── CONTENT HEADER ── */
+.content-header{
+  background:var(--white);padding:16px 24px;border-bottom:1px solid var(--border);
+  display:flex;align-items:flex-start;justify-content:space-between;
+}
+.content-title{font-size:18px;font-weight:600;color:var(--text);}
+.content-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.header-actions{display:flex;gap:8px;}
+
+/* ── BUTTONS ── */
+.btn{padding:7px 16px;border-radius:6px;font-size:12px;font-weight:500;border:none;transition:all .15s;}
+.btn-primary{background:var(--mid);color:var(--white);}
+.btn-primary:hover{background:#1D4ED8;}
+.btn-danger{background:rgba(220,38,38,.12);color:var(--red2);border:1px solid rgba(220,38,38,.3);}
+.btn-danger:hover{background:rgba(220,38,38,.2);}
+.btn-success{background:rgba(22,163,74,.12);color:var(--green2);border:1px solid rgba(22,163,74,.3);}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.btn-ghost:hover{border-color:var(--mid);color:var(--mid);}
+.btn-sm{padding:4px 10px;font-size:11px;}
+
+/* ── CARDS ── */
+.card{background:var(--white);border-radius:8px;border:1px solid var(--border);}
+.card-dark{background:var(--navy2);border-radius:8px;border:1px solid var(--dborder);}
+.card-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.card-header-dark{padding:12px 16px;border-bottom:1px solid var(--dborder);display:flex;align-items:center;justify-content:space-between;}
+.card-title{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);}
+.card-title-dark{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#475569;}
+.card-body{padding:16px;}
+
+/* ── STATS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);}
+.stat-card{background:var(--white);padding:16px 20px;}
+.stat-label{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.stat-value{font-size:26px;font-weight:600;line-height:1;}
+.stat-sub{font-size:11px;color:var(--muted);margin-top:4px;}
+
+/* ── TABLE ── */
+.data-table{width:100%;border-collapse:collapse;}
+.data-table th{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);background:var(--light);}
+.data-table td{padding:10px 14px;border-bottom:1px solid rgba(226,232,240,.5);font-size:12px;vertical-align:middle;}
+.data-table tr:hover td{background:rgba(37,99,235,.02);}
+.data-table tr:last-child td{border-bottom:none;}
+.endpoint{font-family:var(--mono);font-size:11px;color:var(--cyan);}
+
+/* ── BADGES ── */
+.risk-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:600;letter-spacing:.04em;}
+.badge-ghost{background:rgba(124,58,237,.12);color:#A78BFA;border:1px solid rgba(124,58,237,.25);}
+.badge-zombie{background:rgba(220,38,38,.1);color:var(--red2);border:1px solid rgba(220,38,38,.25);}
+.badge-dormant{background:rgba(215,119,6,.1);color:var(--amber2);border:1px solid rgba(215,119,6,.25);}
+.badge-active{background:rgba(22,163,74,.1);color:var(--green2);border:1px solid rgba(22,163,74,.25);}
+
+/* ── SCORE BAR ── */
+.score-wrap{display:flex;align-items:center;gap:8px;}
+.score-track{width:56px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.score-fill{height:100%;border-radius:2px;}
+
+/* ── ALERTS ── */
+.alert{padding:10px 12px;border-radius:6px;border:1px solid;margin-bottom:8px;font-size:11px;line-height:1.5;}
+.alert-crit{background:rgba(220,38,38,.06);border-color:rgba(220,38,38,.2);color:var(--red2);}
+.alert-high{background:rgba(215,119,6,.06);border-color:rgba(215,119,6,.2);color:var(--amber2);}
+.alert-info{background:rgba(14,165,233,.06);border-color:rgba(14,165,233,.2);color:#38BDF8;}
+.alert-time{font-size:10px;opacity:.7;margin-top:2px;}
+
+/* ── RIGHT PANEL ── */
+.rp-section{border-bottom:1px solid var(--dborder);padding:14px;}
+.rp-label{font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#334155;margin-bottom:10px;}
+.score-ring-wrap{text-align:center;padding:8px 0;}
+.score-ring{width:90px;height:90px;border-radius:50%;border:7px solid rgba(220,38,38,.15);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;position:relative;}
+.score-ring-svg{position:absolute;inset:0;transform:rotate(-90deg);}
+.score-ring-val{font-size:22px;font-weight:600;color:var(--red2);}
+.score-ring-sub{font-size:9px;color:#334155;}
+.score-api-name{font-size:11px;color:#60A5FA;text-align:center;font-family:var(--mono);margin-bottom:4px;}
+.score-api-class{font-size:11px;font-weight:600;color:var(--red2);text-align:center;letter-spacing:.06em;}
+.rule-item{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(30,58,95,.5);font-size:10px;}
+.rule-item:last-child{border-bottom:none;}
+.rule-name{color:#64748B;}
+.rule-hit{color:var(--red2);font-weight:600;}
+.rule-pass{color:var(--green2);}
+.cve-item{background:var(--navy3);border-radius:4px;padding:8px;margin-bottom:6px;border:1px solid var(--dborder);}
+.cve-id{font-size:10px;font-weight:600;color:var(--red2);font-family:var(--mono);}
+.cve-desc{font-size:10px;color:#64748B;margin-top:2px;}
+.cve-score{display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:600;background:rgba(220,38,38,.12);color:var(--red2);border:1px solid rgba(220,38,38,.2);margin-top:4px;}
+.ai-box{background:var(--navy3);border-radius:6px;padding:10px;border:1px solid var(--dborder);font-size:10px;color:#64748B;line-height:1.7;}
+.ai-box span{color:#60A5FA;}
+
+/* ── TERMINAL ── */
+.terminal{background:var(--navy3);border-radius:8px;overflow:hidden;border:1px solid var(--dborder);}
+.term-bar{background:#0D1525;padding:8px 14px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--dborder);}
+.term-dot{width:9px;height:9px;border-radius:50%;}
+.term-title{font-size:10px;color:#334155;margin-left:6px;font-family:var(--mono);}
+.term-body{padding:14px;min-height:150px;max-height:220px;overflow-y:auto;}
+.tl{font-size:11px;font-family:var(--mono);margin-bottom:5px;line-height:1.6;}
+.tl-dim{color:#334155;}
+.tl-blue{color:#60A5FA;}
+.tl-red{color:#F87171;}
+.tl-green{color:#34D399;}
+.tl-amber{color:#FCD34D;}
+.tl-cursor::after{content:'_';animation:blink 1s infinite;color:#60A5FA;}
+@keyframes blink{0%,50%{opacity:1;}51%,100%{opacity:0;}}
+
+/* ── SIMULATION ── */
+.sim-stages{display:flex;gap:1px;background:var(--dborder);border-radius:6px;overflow:hidden;margin:12px 0;}
+.sim-stage{flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:500;background:var(--navy2);color:#334155;transition:all .3s;}
+.sim-stage.done{background:rgba(22,163,74,.12);color:var(--green2);}
+.sim-stage.active{background:rgba(215,119,6,.12);color:var(--amber2);}
+.sim-stage.blocked{background:rgba(220,38,38,.12);color:var(--red2);}
+.sim-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0;}
+.dmg-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0;}
+.dmg-label{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#334155;margin-bottom:6px;}
+.dmg-track{height:8px;background:var(--dborder);border-radius:4px;overflow:hidden;}
+.dmg-fill{height:100%;border-radius:4px;transition:width .5s ease;}
+.dmg-text{font-size:11px;margin-top:6px;}
+
+/* ── OWASP TABLE ── */
+.owasp-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(226,232,240,.5);font-size:12px;}
+.owasp-row:last-child{border-bottom:none;}
+.owasp-id{width:44px;font-size:11px;font-weight:600;color:var(--mid);font-family:var(--mono);}
+.owasp-name{flex:1;color:var(--text);}
+.owasp-result{font-size:10px;font-weight:600;padding:2px 8px;border-radius:3px;}
+.res-pass{background:rgba(22,163,74,.1);color:var(--green2);}
+.res-fail{background:rgba(220,38,38,.1);color:var(--red2);}
+.res-warn{background:rgba(215,119,6,.1);color:var(--amber2);}
+.owasp-detail{font-size:10px;color:var(--muted);margin-left:8px;}
+
+/* ── QUARANTINE ── */
+.q-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(226,232,240,.5);}
+.q-item:last-child{border-bottom:none;}
+.q-ep{font-family:var(--mono);font-size:11px;color:var(--cyan);flex:1;}
+.q-score{font-weight:600;color:var(--red2);font-size:12px;}
+.q-time{font-size:10px;color:var(--muted);min-width:60px;}
+
+/* ── HONEYPOT ── */
+.honey-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(226,232,240,.5);}
+.honey-item:last-child{border-bottom:none;}
+.honey-ep{font-family:var(--mono);font-size:11px;color:var(--cyan);flex:1;}
+.honey-armed{font-size:10px;font-weight:600;color:var(--green2);}
+.honey-hits{font-size:10px;font-weight:600;color:var(--red2);}
+
+/* ── COMPLIANCE ── */
+.comp-bar-wrap{margin-bottom:14px;}
+.comp-row{display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:5px;}
+.comp-track{height:7px;background:var(--border);border-radius:4px;overflow:hidden;}
+.comp-fill{height:100%;border-radius:4px;}
+
+/* ── NETWORK MAP ── */
+.net-map-placeholder{
+  height:180px;background:var(--navy3);border-radius:8px;border:1px dashed var(--dborder);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+}
+
+/* ── GRID UTILITIES ── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.content-pad{padding:20px 24px;}
+.mt-4{margin-top:16px;}
+.mb-4{margin-bottom:16px;}
+.gap-2{gap:8px;}
+.flex{display:flex;}
+.items-center{align-items:center;}
+.justify-between{justify-content:space-between;}
+.flex-1{flex:1;}
+
+/* ══════════════════════════════════════════
+   LANDING PAGE STYLES
+══════════════════════════════════════════ */
+.lp-hero{
+  background:var(--navy);padding:80px 64px 60px;
+  display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center;
+}
+.lp-tag{display:inline-block;padding:4px 12px;border-radius:20px;border:1px solid #1E3A5F;color:#60A5FA;font-size:11px;font-weight:500;letter-spacing:.06em;margin-bottom:18px;}
+.lp-h1{font-size:40px;font-weight:600;color:var(--white);line-height:1.2;margin-bottom:14px;}
+.lp-h1 em{color:#60A5FA;font-style:normal;}
+.lp-sub{font-size:14px;color:#94A3B8;line-height:1.75;margin-bottom:28px;}
+.lp-btns{display:flex;gap:12px;}
+.lp-btn-red{padding:11px 26px;border-radius:7px;background:var(--red);color:var(--white);font-size:13px;font-weight:500;border:none;}
+.lp-btn-out{padding:11px 26px;border-radius:7px;background:transparent;color:#94A3B8;font-size:13px;border:1px solid #1E3A5F;}
+.stats-band{display:grid;grid-template-columns:repeat(4,1fr);background:var(--light);border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+.stat-band-item{padding:28px 20px;text-align:center;border-right:1px solid var(--border);}
+.stat-band-item:last-child{border-right:none;}
+.stat-band-val{font-size:28px;font-weight:600;margin-bottom:4px;}
+.stat-band-lbl{font-size:12px;color:var(--muted);}
+.lp-section{padding:64px;}
+.lp-section.dark{background:var(--navy);border-top:1px solid #1E3A5F;border-bottom:1px solid #1E3A5F;}
+.lp-section-label{font-size:11px;font-weight:600;letter-spacing:.1em;color:var(--mid);text-transform:uppercase;margin-bottom:8px;}
+.lp-section-label.light{color:#60A5FA;}
+.lp-h2{font-size:28px;font-weight:600;margin-bottom:10px;}
+.lp-h2.light{color:var(--white);}
+.lp-desc{font-size:14px;color:var(--muted);line-height:1.75;max-width:560px;margin-bottom:36px;}
+.lp-desc.light{color:#94A3B8;}
+.steps-row{display:flex;gap:0;}
+.step-box{flex:1;padding:24px;background:var(--white);border:1px solid var(--border);border-right:none;position:relative;}
+.step-box:first-child{border-radius:8px 0 0 8px;}
+.step-box:last-child{border-radius:0 8px 8px 0;border-right:1px solid var(--border);}
+.step-circle{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--white);margin-bottom:14px;}
+.step-title{font-size:14px;font-weight:600;margin-bottom:6px;}
+.step-desc{font-size:12px;color:var(--muted);line-height:1.65;}
+.step-arrow{position:absolute;right:-13px;top:50%;transform:translateY(-50%);width:26px;height:26px;background:var(--light);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted);z-index:2;border:1px solid var(--border);}
+.tools-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+.tool-card{background:#0A1225;border-radius:10px;padding:24px;border:1px solid #1E3A5F;}
+.tool-icon-wrap{width:42px;height:42px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-size:20px;}
+.tool-title{font-size:15px;font-weight:600;color:var(--white);margin-bottom:8px;}
+.tool-desc{font-size:12px;color:#94A3B8;line-height:1.7;margin-bottom:14px;}
+.tool-tag{display:inline-block;padding:3px 9px;border-radius:4px;font-size:10px;font-weight:500;}
+.score-section-grid{display:grid;grid-template-columns:1fr 1fr;gap:36px;align-items:start;}
+.score-tbl{width:100%;border-collapse:collapse;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+.score-tbl th{background:var(--blue);color:var(--white);font-size:11px;padding:10px 14px;text-align:left;font-weight:600;}
+.score-tbl td{font-size:12px;padding:9px 14px;border-bottom:1px solid var(--border);}
+.score-tbl tr:last-child td{border-bottom:none;}
+.score-tbl tr:nth-child(even) td{background:var(--light);}
+.score-info-card{padding:16px;border-radius:8px;border:1px solid var(--border);background:var(--light);margin-bottom:12px;}
+.score-info-title{font-size:13px;font-weight:600;margin-bottom:6px;}
+.score-info-desc{font-size:12px;color:var(--muted);line-height:1.65;}
+.demo-split{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.tech-pills{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;}
+.tech-pill{padding:10px 8px;border-radius:6px;border:1px solid var(--border);text-align:center;font-size:10px;color:var(--muted);background:var(--white);}
+.tech-pill strong{display:block;font-size:12px;color:var(--text);font-weight:500;margin-bottom:2px;}
+.lp-footer{background:var(--navy);padding:36px 64px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid #1E3A5F;}
+.footer-logo{font-size:16px;font-weight:600;color:var(--white);}
+.footer-logo span{color:#60A5FA;}
+.footer-sub{font-size:12px;color:#334155;margin-top:4px;}
+.footer-tagline{font-size:11px;color:#1E3A5F;margin-top:6px;font-style:italic;}
+.footer-links{display:flex;gap:24px;}
+.footer-link{font-size:12px;color:#64748B;cursor:pointer;background:none;border:none;}
+.footer-link:hover{color:var(--white);}
+
+/* ══════════════════════════════════════════
+   MOBILE MENU TOGGLE
+══════════════════════════════════════════ */
+.nav-hamburger{
+  display:none;margin-left:auto;background:none;border:none;
+  color:var(--white);font-size:20px;cursor:pointer;padding:4px 8px;line-height:1;
+}
+.nav-mobile-menu{
+  display:none;position:fixed;top:52px;left:0;right:0;z-index:190;
+  background:var(--navy);border-bottom:1px solid var(--dborder);
+  flex-direction:column;padding:8px 0;
+}
+.nav-mobile-menu.open{display:flex;}
+.nav-mobile-link{
+  font-size:13px;color:var(--muted2);padding:10px 20px;
+  background:none;border:none;text-align:left;cursor:pointer;
+}
+.nav-mobile-link:hover{color:var(--white);background:rgba(255,255,255,.04);}
+.nav-mobile-cta{
+  margin:8px 16px 4px;padding:10px;border-radius:6px;
+  background:var(--red);color:var(--white);font-size:13px;
+  font-weight:500;border:none;cursor:pointer;
+}
+
+/* ══════════════════════════════════════════
+   SIDEBAR OVERLAY (mobile dashboard)
+══════════════════════════════════════════ */
+.sidebar-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:149;
+}
+.sidebar-overlay.open{display:block;}
+.sidebar-toggle{
+  display:none;background:none;border:none;color:var(--white);
+  font-size:18px;cursor:pointer;padding:4px 8px;margin-right:4px;
+}
+
+/* ══════════════════════════════════════════
+   RESPONSIVE BREAKPOINTS
+══════════════════════════════════════════ */
+
+/* ── TABLET (≤900px) ── */
+@media(max-width:900px){
+  /* Nav */
+  .nav-links{display:none;}
+  .nav-hamburger{display:block;}
+
+  /* Landing hero */
+  .lp-hero{
+    grid-template-columns:1fr;padding:48px 32px 40px;gap:32px;
+  }
+  .lp-h1{font-size:30px;}
+
+  /* Stats band */
+  .stats-band{grid-template-columns:repeat(2,1fr);}
+  .stat-band-item:nth-child(2){border-right:none;}
+  .stat-band-item:nth-child(3){border-top:1px solid var(--border);}
+  .stat-band-item:nth-child(4){border-top:1px solid var(--border);border-right:none;}
+
+  /* Sections */
+  .lp-section{padding:40px 32px;}
+  .lp-h2{font-size:22px;}
+
+  /* Steps row becomes 2-col grid */
+  .steps-row{display:grid;grid-template-columns:1fr 1fr;gap:0;}
+  .step-box{border-right:1px solid var(--border);}
+  .step-box:nth-child(2){border-right:none;}
+  .step-box:nth-child(3){border-top:1px solid var(--border);border-radius:0;}
+  .step-box:nth-child(4){border-top:1px solid var(--border);border-right:1px solid var(--border);border-radius:0 0 8px 8px;}
+  .step-arrow{display:none;}
+  .step-box:first-child{border-radius:8px 0 0 0;}
+  .step-box:nth-child(2){border-radius:0 8px 0 0;}
+
+  /* Tools grid */
+  .tools-grid{grid-template-columns:1fr 1fr;gap:16px;}
+
+  /* Score section */
+  .score-section-grid{grid-template-columns:1fr;}
+
+  /* Tech pills */
+  .tech-pills{grid-template-columns:repeat(4,1fr);}
+
+  /* Footer */
+  .lp-footer{flex-direction:column;gap:24px;text-align:center;padding:32px 24px;}
+  .footer-links{justify-content:center;flex-wrap:wrap;gap:16px;}
+
+  /* Demo split */
+  .demo-split{grid-template-columns:1fr;}
+
+  /* Dashboard */
+  .db-right{display:none;}
+  .sidebar-toggle{display:block;}
+  .db-sidebar{
+    position:fixed;top:52px;left:-200px;height:calc(100vh - 52px);
+    z-index:150;transition:left .25s ease;
+  }
+  .db-sidebar.open{left:0;}
+  .sidebar-overlay{display:none;}
+  .sidebar-overlay.open{display:block;}
+
+  /* Stats grid */
+  .stats-grid{grid-template-columns:repeat(2,1fr);}
+
+  /* Content header */
+  .content-header{flex-direction:column;gap:10px;}
+  .header-actions{flex-wrap:wrap;}
+
+  /* Grids */
+  .grid-2{grid-template-columns:1fr;}
+  .grid-3{grid-template-columns:1fr 1fr;}
+
+  /* Sim grid */
+  .sim-grid{grid-template-columns:1fr;}
+  .dmg-grid{grid-template-columns:1fr;}
+}
+
+/* ── MOBILE (≤600px) ── */
+@media(max-width:600px){
+  /* Top nav */
+  .top-nav{padding:0 16px;}
+
+  /* Landing */
+  .lp-hero{padding:32px 16px 28px;gap:24px;}
+  .lp-h1{font-size:24px;}
+  .lp-sub{font-size:13px;}
+  .lp-btns{flex-direction:column;gap:8px;}
+  .lp-btn-red,.lp-btn-out{width:100%;text-align:center;}
+
+  /* Stats band */
+  .stats-band{grid-template-columns:1fr 1fr;}
+  .stat-band-item{padding:18px 12px;}
+  .stat-band-val{font-size:20px;}
+
+  /* Sections */
+  .lp-section{padding:28px 16px;}
+  .lp-h2{font-size:19px;}
+  .lp-desc{font-size:13px;margin-bottom:24px;}
+
+  /* Steps: single column */
+  .steps-row{grid-template-columns:1fr;}
+  .step-box{border-right:1px solid var(--border) !important;border-radius:0 !important;}
+  .step-box:first-child{border-radius:8px 8px 0 0 !important;}
+  .step-box:last-child{border-radius:0 0 8px 8px !important;border-right:1px solid var(--border) !important;}
+
+  /* Tools: single column */
+  .tools-grid{grid-template-columns:1fr;}
+
+  /* Tech pills */
+  .tech-pills{grid-template-columns:repeat(3,1fr);gap:8px;}
+
+  /* Footer */
+  .lp-footer{padding:24px 16px;}
+  .footer-links{gap:12px;}
+
+  /* Dashboard main */
+  .content-pad{padding:14px 12px;}
+  .content-header{padding:12px 14px;}
+  .content-title{font-size:15px;}
+  .stats-grid{grid-template-columns:1fr 1fr;}
+  .stat-value{font-size:20px;}
+
+  /* Table: make scrollable */
+  .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .data-table{min-width:540px;}
+
+  /* Grid utils */
+  .grid-3{grid-template-columns:1fr;}
+
+  /* Sim stages: wrap */
+  .sim-stages{flex-wrap:wrap;}
+  .sim-stage{flex:none;width:calc(50% - 1px);}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     PAGE: LANDING
+══════════════════════════════════════════ -->
+<div id="page-landing" class="page active">
+
+  <!-- NAVBAR -->
+  <nav class="top-nav">
+    <span class="nav-logo">VAULT<span>SENTINEL</span></span>
+    <div class="nav-links">
+      <button class="nav-link" onclick="scrollToSection('sec-features')">Features</button>
+      <button class="nav-link" onclick="scrollToSection('sec-howitworks')">How it works</button>
+      <button class="nav-link" onclick="scrollToSection('sec-tools')">Tools</button>
+      <button class="nav-link" onclick="scrollToSection('sec-stack')">About</button>
+      <button class="nav-cta" onclick="goTo('overview')">Launch Dashboard →</button>
+    </div>
+    <button class="nav-hamburger" onclick="toggleMobileMenu()" id="hamburger-btn" aria-label="Menu">☰</button>
+  </nav>
+  <!-- MOBILE MENU -->
+  <div class="nav-mobile-menu" id="mobile-menu">
+    <button class="nav-mobile-link" onclick="closeMobileMenu();scrollToSection('sec-features')">Features</button>
+    <button class="nav-mobile-link" onclick="closeMobileMenu();scrollToSection('sec-howitworks')">How it works</button>
+    <button class="nav-mobile-link" onclick="closeMobileMenu();scrollToSection('sec-tools')">Tools</button>
+    <button class="nav-mobile-link" onclick="closeMobileMenu();scrollToSection('sec-stack')">About</button>
+    <button class="nav-mobile-cta" onclick="closeMobileMenu();goTo('overview')">Launch Dashboard →</button>
+  </div>
+
+  <!-- HERO -->
+  <div class="lp-hero">
+    <div>
+      <div class="lp-tag">PS9 · PSBs Banking Hackathon 2026</div>
+      <div class="lp-h1">Your bank has<br><em>forgotten doors.</em><br>Hackers know<br>where they are.</div>
+      <div class="lp-sub">Vault Sentinel automatically discovers Zombie and Dormant APIs inside your banking infrastructure, scores their risk using ML, and eliminates threats before they are ever exploited.</div>
+      <div class="lp-btns">
+        <button class="lp-btn-red" onclick="goTo('overview')">Launch Dashboard →</button>
+        <button class="lp-btn-out" onclick="goTo('simulation')">▶ Watch Simulation</button>
+      </div>
+    </div>
+    <div>
+      <div class="terminal">
+        <div class="term-bar">
+          <div class="term-dot" style="background:#EF4444;"></div>
+          <div class="term-dot" style="background:#F59E0B;"></div>
+          <div class="term-dot" style="background:#10B981;"></div>
+          <span class="term-title">vault-sentinel · scanner v1.0</span>
+        </div>
+        <div class="term-body" id="hero-terminal">
+          <div class="tl tl-blue">Initialising Vault Sentinel scanner...</div>
+          <div class="tl tl-dim">Connecting to API gateway logs...</div>
+          <div class="tl tl-dim">Reading OpenAPI specification...</div>
+          <div class="tl tl-dim">Scanning 847 endpoints...</div>
+          <div class="tl tl-dim">Comparing against official spec...</div>
+          <div class="tl" style="color:#F87171;">GHOST: /api/v0/user-data → Score 99/100 ⚠</div>
+          <div class="tl" style="color:#F87171;">GHOST: /internal/admin-reset → Score 97/100 ⚠</div>
+          <div class="tl" style="color:#FCD34D;">ZOMBIE: /api/v0/legacy-payment → Score 91/100</div>
+          <div class="tl" style="color:#FCD34D;">ZOMBIE: /api/v0/account-export → Score 87/100</div>
+          <div class="tl tl-green">Auto-quarantine triggered — 2 endpoints blocked ✓</div>
+          <div class="tl tl-green">Attacker IPs banned · Incident reports generated ✓</div>
+          <div class="tl tl-green">RBI compliance report ready — 74% coverage ✓</div>
+          <div class="tl tl-cursor tl-dim">Monitoring 847 endpoints in real time_</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS BAND -->
+  <div class="stats-band" id="sec-features">
+    <div class="stat-band-item"><div class="stat-band-val" style="color:var(--red);">Rs 35Cr+</div><div class="stat-band-lbl">Average API breach cost in banking</div></div>
+    <div class="stat-band-item"><div class="stat-band-val" style="color:var(--mid);">6 months</div><div class="stat-band-lbl">Average breach detection delay</div></div>
+    <div class="stat-band-item"><div class="stat-band-val" style="color:var(--teal);">0.3s</div><div class="stat-band-lbl">Auto-quarantine response time</div></div>
+    <div class="stat-band-item"><div class="stat-band-val" style="color:var(--amber);">10,000+</div><div class="stat-band-lbl">Indian FIs addressable</div></div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div class="lp-section" id="sec-howitworks">
+    <div class="lp-section-label">Process</div>
+    <div class="lp-h2">How Vault Sentinel works</div>
+    <div class="lp-desc">A structured 3-layer pipeline — Detection, Protection and Removal — fully automated from discovery through to compliance reporting.</div>
+    <div class="steps-row">
+      <div class="step-box">
+        <div class="step-circle" style="background:var(--mid);">1</div>
+        <div class="step-title">Discover</div>
+        <div class="step-desc">Scans API gateway logs, network traffic and OpenAPI specs. Finds every endpoint — documented or forgotten.</div>
+        <div class="step-arrow">→</div>
+      </div>
+      <div class="step-box">
+        <div class="step-circle" style="background:var(--amber);">2</div>
+        <div class="step-title">Score</div>
+        <div class="step-desc">Traffic + Static + ML composite scoring assigns every API a unified Zombie Risk Score from 0 to 100.</div>
+        <div class="step-arrow">→</div>
+      </div>
+      <div class="step-box">
+        <div class="step-circle" style="background:var(--red);">3</div>
+        <div class="step-title">Defend</div>
+        <div class="step-desc">OWASP scanning, auto-quarantine and honeypot traps activate on all flagged endpoints automatically.</div>
+        <div class="step-arrow">→</div>
+      </div>
+      <div class="step-box">
+        <div class="step-circle" style="background:var(--teal);">4</div>
+        <div class="step-title">Report</div>
+        <div class="step-desc">One-click RBI IT Framework, PCI-DSS 4.0 and DPDP Act 2023 compliance report — ready for regulators.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOOLS -->
+  <div class="lp-section dark" id="sec-tools">
+    <div class="lp-section-label light">Cybersecurity Tools</div>
+    <div class="lp-h2 light">Three integrated security tools</div>
+    <div class="lp-desc light">Each tool targets a different phase of the attack lifecycle — together they create a complete end-to-end defence system.</div>
+    <div class="tools-grid">
+      <div class="tool-card">
+        <div class="tool-icon-wrap" style="background:#1E1040;">🔍</div>
+        <div class="tool-title">OWASP Top 10 Scanner</div>
+        <div class="tool-desc">Automatically checks every flagged API against all 10 globally recognised OWASP API security risk categories. Produces a structured pass/fail table with severity ratings — aligned to the standard banking regulators use.</div>
+        <span class="tool-tag" style="background:#1E3A5F;color:#60A5FA;">API2 · API8 · API9 · all 10 rules</span>
+      </div>
+      <div class="tool-card">
+        <div class="tool-icon-wrap" style="background:#052E16;">⚡</div>
+        <div class="tool-title">Auto-Quarantine Engine</div>
+        <div class="tool-desc">Monitors risk scores continuously. The moment any endpoint crosses the threshold (default 85/100), it is automatically blocked at the API gateway level within 0.3 seconds. No human action required.</div>
+        <span class="tool-tag" style="background:#14532D;color:#4ADE80;">Blocks in 0.3s · No human needed</span>
+      </div>
+      <div class="tool-card">
+        <div class="tool-icon-wrap" style="background:#431407;">🍯</div>
+        <div class="tool-title">HoneyTrap System</div>
+        <div class="tool-desc">Deploys decoy API endpoints that look identical to real zombie APIs. Any request received is guaranteed malicious — zero false positives. Captures attacker IP, headers and payload as compliance evidence.</div>
+        <span class="tool-tag" style="background:#7C2D12;color:#FCA5A5;">Zero false positives · Full capture</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCORING -->
+  <div class="lp-section">
+    <div class="lp-section-label">Intelligence</div>
+    <div class="lp-h2">3-Part composite risk scoring</div>
+    <div class="lp-desc">Every API is evaluated across three dimensions — Traffic, Static and ML — producing a single unified Zombie Risk Score.</div>
+    <div class="score-section-grid">
+      <table class="score-tbl">
+        <thead><tr><th>Score</th><th>Classification</th><th>Auto Action</th></tr></thead>
+        <tbody>
+          <tr><td>0 — 30</td><td><span class="risk-badge badge-active">ACTIVE</span></td><td>Monitor only</td></tr>
+          <tr><td>31 — 60</td><td><span class="risk-badge badge-dormant">DORMANT</span></td><td>Email alert to team</td></tr>
+          <tr><td>61 — 85</td><td><span class="risk-badge badge-zombie">ZOMBIE</span></td><td>Slack alert + review</td></tr>
+          <tr><td>86 — 100</td><td><span class="risk-badge badge-ghost">GHOST</span></td><td>Auto-quarantine + page</td></tr>
+        </tbody>
+      </table>
+      <div>
+        <div class="score-info-card"><div class="score-info-title" style="color:var(--mid);">Traffic scoring</div><div class="score-info-desc">Analyses call history — APIs silent 90+ days classified Dormant, 1+ year become Zombie. Sudden spikes on dead endpoints trigger critical resurrection alerts.</div></div>
+        <div class="score-info-card"><div class="score-info-title" style="color:var(--amber);">Static scoring</div><div class="score-info-desc">Checks auth type, documentation status, team ownership and CVE count in dependency chain. No auth + no docs + no owner = near-maximum risk.</div></div>
+        <div class="score-info-card" style="margin-bottom:0"><div class="score-info-title" style="color:var(--teal);">ML scoring</div><div class="score-info-desc">Predicts future zombies by detecting declining traffic trends, team restructuring signals and replacement API launches before dormancy sets in.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DEMO TEASER -->
+  <div class="lp-section dark">
+    <div class="lp-section-label light">Live Simulation</div>
+    <div class="lp-h2 light">Watch a real attack. Watch it get stopped.</div>
+    <div class="lp-desc light">A controlled sandbox using real attack techniques against intentionally vulnerable APIs. 100% local. 100% legal.</div>
+    <div class="demo-split" style="margin-bottom:24px;">
+      <div class="terminal">
+        <div class="term-bar"><div class="term-dot" style="background:#EF4444;"></div><span class="term-title" style="color:#EF4444;">🔴 Attacker</span></div>
+        <div class="term-body">
+          <div class="tl tl-dim">Scanning for endpoints...</div>
+          <div class="tl tl-red">GET /api/v0/user-data → 200 FOUND</div>
+          <div class="tl tl-dim">No auth — brute forcing credentials...</div>
+          <div class="tl tl-red">service:service123 → 200 BREACH ✓</div>
+          <div class="tl tl-red">Pulling 50,000 customer records...</div>
+          <div class="tl tl-red">38,420 records exfiltrated so far...</div>
+        </div>
+      </div>
+      <div class="terminal">
+        <div class="term-bar"><div class="term-dot" style="background:#10B981;"></div><span class="term-title" style="color:#10B981;">🛡️ Vault Sentinel</span></div>
+        <div class="term-body">
+          <div class="tl tl-dim">Monitoring 847 endpoints...</div>
+          <div class="tl tl-amber">Resurrection anomaly detected!</div>
+          <div class="tl tl-amber">Brute force: 47 failed attempts/min</div>
+          <div class="tl tl-green">Score 99 — threshold crossed</div>
+          <div class="tl tl-green">API QUARANTINED in 0.3s ✓</div>
+          <div class="tl tl-green">0 records leaked · IP banned ✓</div>
+        </div>
+      </div>
+    </div>
+    <div style="text-align:center;">
+      <button class="lp-btn-red" style="font-size:14px;padding:12px 36px;" onclick="goTo('simulation')">Run Full Simulation →</button>
+    </div>
+  </div>
+
+  <!-- TECH STACK -->
+  <div class="lp-section" id="sec-stack">
+    <div class="lp-section-label">Stack</div>
+    <div class="lp-h2">Built with</div>
+    <div class="tech-pills">
+      <div class="tech-pill"><strong>Next.js 14</strong>Landing page</div>
+      <div class="tech-pill"><strong>React 18</strong>Dashboard SPA</div>
+      <div class="tech-pill"><strong>TypeScript</strong>Both frontends</div>
+      <div class="tech-pill"><strong>FastAPI</strong>Python backend</div>
+      <div class="tech-pill"><strong>D3.js</strong>Network graph</div>
+      <div class="tech-pill"><strong>Gemini AI</strong>Risk explain</div>
+      <div class="tech-pill"><strong>scikit-learn</strong>ML scoring</div>
+      <div class="tech-pill"><strong>PostgreSQL</strong>Database</div>
+      <div class="tech-pill"><strong>Redis</strong>Alert cache</div>
+      <div class="tech-pill"><strong>OWASP</strong>Rule engine</div>
+      <div class="tech-pill"><strong>httpx</strong>Simulation</div>
+      <div class="tech-pill"><strong>Framer</strong>Animations</div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="lp-footer">
+    <div>
+      <div class="footer-logo">VAULT<span>SENTINEL</span></div>
+      <div class="footer-sub">PS9 · PSBs Banking Hackathon 2026 · Team Vault Sentinel</div>
+      <div class="footer-tagline">"Because every door in your bank deserves a guardian."</div>
+    </div>
+    <div class="footer-links">
+      <button class="footer-link" onclick="goTo('overview')">Launch Dashboard</button>
+      <button class="footer-link">GitHub</button>
+      <button class="footer-link">Demo Video</button>
+      <button class="footer-link">One-Pager PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     DASHBOARD SHELL (shared)
+══════════════════════════════════════════ -->
+<div id="page-dashboard" class="page">
+  <nav class="top-nav">
+    <button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar">☰</button>
+    <span class="nav-logo" onclick="goTo('landing')" style="cursor:pointer;">VAULT<span>SENTINEL</span></span>
+    <div class="nav-status" style="margin-left:16px;">SYSTEM ACTIVE</div>
+    <div style="width:1px;height:20px;background:#1E3A5F;margin:0 8px;"></div>
+    <span style="font-size:11px;color:#334155;">PSBs Hackathon 2026</span>
+    <div class="nav-links">
+      <span style="font-size:11px;color:var(--red2);border:1px solid rgba(220,38,38,.3);padding:2px 8px;border-radius:3px;font-weight:600;animation:blink 1.5s infinite;">● LIVE</span>
+      <span style="font-size:11px;color:#334155;" id="clock"></span>
+    </div>
+  </nav>
+  <div class="db-wrap">
+    <!-- SIDEBAR OVERLAY -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+    <!-- SIDEBAR -->
+    <div class="db-sidebar">
+      <div class="sidebar-section">Security</div>
+      <div class="sidebar-item" id="nav-overview" onclick="showDashPage('overview')">
+        <div class="sidebar-dot" style="background:var(--cyan);"></div>Overview
+      </div>
+      <div class="sidebar-item" id="nav-apis" onclick="showDashPage('apis')">
+        <div class="sidebar-dot" style="background:#334155;"></div>API Registry
+        <span class="sidebar-badge badge-red">23</span>
+      </div>
+      <div class="sidebar-item" id="nav-simulation" onclick="showDashPage('simulation')">
+        <div class="sidebar-dot" style="background:var(--red2);"></div>Simulation
+        <span class="sidebar-badge badge-red">RUN</span>
+      </div>
+      <div class="sidebar-section">Tools</div>
+      <div class="sidebar-item" id="nav-owasp" onclick="showDashPage('owasp')">
+        <div class="sidebar-dot" style="background:#334155;"></div>OWASP Scanner
+      </div>
+      <div class="sidebar-item" id="nav-quarantine" onclick="showDashPage('quarantine')">
+        <div class="sidebar-dot" style="background:#334155;"></div>Auto-Quarantine
+        <span class="sidebar-badge badge-amber">6</span>
+      </div>
+      <div class="sidebar-item" id="nav-honeypot" onclick="showDashPage('honeypot')">
+        <div class="sidebar-dot" style="background:#334155;"></div>HoneyTrap
+        <span class="sidebar-badge badge-amber">3</span>
+      </div>
+      <div class="sidebar-section">Reports</div>
+      <div class="sidebar-item" id="nav-compliance" onclick="showDashPage('compliance')">
+        <div class="sidebar-dot" style="background:#334155;"></div>Compliance
+        <span class="sidebar-badge badge-teal">RBI</span>
+      </div>
+      <div class="sidebar-item" id="nav-alerts" onclick="showDashPage('alerts')">
+        <div class="sidebar-dot" style="background:#334155;"></div>Alert Feed
+        <span class="sidebar-badge badge-amber">7</span>
+      </div>
+      <div style="margin-top:auto;padding:14px 16px;border-top:1px solid var(--dborder);">
+        <div style="font-size:9px;color:#1E3A5F;margin-bottom:5px;text-transform:uppercase;letter-spacing:.08em;">Last Scan</div>
+        <div style="font-size:11px;color:var(--teal2);">2 minutes ago</div>
+        <div style="margin-top:8px;height:3px;background:var(--dborder);border-radius:2px;overflow:hidden;">
+          <div style="width:100%;height:100%;background:var(--teal2);border-radius:2px;animation:scan-progress 4s linear infinite;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT AREA -->
+    <div class="db-content" id="dash-main">
+      <!-- Filled by showDashPage() -->
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="db-right">
+      <div class="rp-section">
+        <div class="rp-label">Selected API · Risk Score</div>
+        <div class="score-ring-wrap">
+          <div class="score-ring">
+            <svg class="score-ring-svg" width="90" height="90" viewBox="0 0 90 90">
+              <circle cx="45" cy="45" r="38" fill="none" stroke="rgba(220,38,38,0.12)" stroke-width="7"/>
+              <circle cx="45" cy="45" r="38" fill="none" stroke="#DC2626" stroke-width="7"
+                stroke-dasharray="239" stroke-dashoffset="24" stroke-linecap="round"/>
+            </svg>
+            <div>
+              <div class="score-ring-val">99</div>
+              <div class="score-ring-sub">/100</div>
+            </div>
+          </div>
+          <div class="score-api-name">/api/v0/user-data</div>
+          <div class="score-api-class">GHOST</div>
+        </div>
+      </div>
+      <div class="rp-section">
+        <div class="rp-label">Score Breakdown</div>
+        <div class="rule-item"><span class="rule-name">Inactive 730+ days</span><span class="rule-hit">+40</span></div>
+        <div class="rule-item"><span class="rule-name">No authentication</span><span class="rule-hit">+30</span></div>
+        <div class="rule-item"><span class="rule-name">Not documented</span><span class="rule-hit">+15</span></div>
+        <div class="rule-item"><span class="rule-name">No owner assigned</span><span class="rule-hit">+15</span></div>
+        <div class="rule-item"><span class="rule-name">3 CVEs found</span><span class="rule-hit">+20</span></div>
+        <div class="rule-item"><span class="rule-name">Active traffic</span><span class="rule-pass">+0</span></div>
+      </div>
+      <div class="rp-section">
+        <div class="rp-label">Active CVEs</div>
+        <div class="cve-item"><div class="cve-id">CVE-2021-41773</div><div class="cve-desc">Apache path traversal — remote code execution</div><div class="cve-score">CVSS 9.8</div></div>
+        <div class="cve-item"><div class="cve-id">CVE-2019-11043</div><div class="cve-desc">PHP-FPM remote code execution</div><div class="cve-score">CVSS 9.8</div></div>
+        <div class="cve-item"><div class="cve-id">CVE-2020-17519</div><div class="cve-desc">Apache Flink directory traversal</div><div class="cve-score">CVSS 7.5</div></div>
+      </div>
+      <div class="rp-section" style="border-bottom:none;">
+        <div class="rp-label">Gemini AI Summary</div>
+        <div class="ai-box"><span>Gemini:</span> This endpoint has not been called in 730 days, uses no authentication, and carries 3 critical CVEs. Any request to it is likely malicious. Immediate quarantine recommended before exploitation.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<style>
+@keyframes scan-progress{0%{width:0%;}100%{width:100%;}}
+</style>
+
+<script>
+// ── MOBILE MENU ──────────────────────────────
+function toggleMobileMenu() {
+  const menu = document.getElementById('mobile-menu');
+  const btn = document.getElementById('hamburger-btn');
+  if (!menu) return;
+  const open = menu.classList.toggle('open');
+  if (btn) btn.textContent = open ? '✕' : '☰';
+}
+function closeMobileMenu() {
+  const menu = document.getElementById('mobile-menu');
+  const btn = document.getElementById('hamburger-btn');
+  if (menu) menu.classList.remove('open');
+  if (btn) btn.textContent = '☰';
+}
+
+// ── SIDEBAR TOGGLE (mobile dashboard) ────────
+function toggleSidebar() {
+  const sb = document.querySelector('.db-sidebar');
+  const ov = document.getElementById('sidebar-overlay');
+  if (!sb) return;
+  sb.classList.toggle('open');
+  if (ov) ov.classList.toggle('open');
+}
+function closeSidebar() {
+  const sb = document.querySelector('.db-sidebar');
+  const ov = document.getElementById('sidebar-overlay');
+  if (sb) sb.classList.remove('open');
+  if (ov) ov.classList.remove('open');
+}
+
+// ── NAVIGATION ──────────────────────────────
+function goTo(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  if (page === 'landing') {
+    document.getElementById('page-landing').classList.add('active');
+    window.scrollTo(0, 0);
+  } else {
+    document.getElementById('page-dashboard').classList.add('active');
+    showDashPage(page);
+    window.scrollTo(0, 0);
+  }
+}
+
+function showDashPage(page) {
+  closeSidebar();
+  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+  const navEl = document.getElementById('nav-' + page);
+  if (navEl) navEl.classList.add('active');
+  const main = document.getElementById('dash-main');
+  const pages = {
+    overview: renderOverview,
+    apis: renderAPIs,
+    simulation: renderSimulation,
+    owasp: renderOWASP,
+    quarantine: renderQuarantine,
+    honeypot: renderHoneypot,
+    compliance: renderCompliance,
+    alerts: renderAlerts,
+  };
+  if (pages[page]) main.innerHTML = pages[page]();
+  if (page === 'simulation') initSimulation();
+}
+
+// ── CLOCK ────────────────────────────────────
+function updateClock() {
+  const el = document.getElementById('clock');
+  if (el) el.textContent = new Date().toLocaleTimeString('en-IN', {hour12: false});
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── PAGE RENDERERS ──────────────────────────
+
+function renderOverview() {
+  return `
+  <div class="content-header">
+    <div>
+      <div class="content-title">Security Overview</div>
+      <div class="content-sub">847 APIs monitored · Last scan 2 min ago · 4 critical threats detected</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-ghost btn-sm" onclick="showDashPage('apis')">⟳ Rescan</button>
+      <button class="btn btn-primary btn-sm" onclick="showDashPage('simulation')">▶ Run Simulation</button>
+    </div>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-label">Total APIs</div><div class="stat-value" style="color:var(--cyan);">847</div><div class="stat-sub">↑ 12 since last scan</div></div>
+    <div class="stat-card"><div class="stat-label">Zombies / Ghosts</div><div class="stat-value" style="color:var(--red2);">23</div><div class="stat-sub">4 critical · 19 high</div></div>
+    <div class="stat-card"><div class="stat-label">Quarantined</div><div class="stat-value" style="color:var(--amber2);">6</div><div class="stat-sub">Blocked at gateway</div></div>
+    <div class="stat-card"><div class="stat-label">Compliance Score</div><div class="stat-value" style="color:var(--teal2);">74%</div><div class="stat-sub">RBI · PCI-DSS · OWASP</div></div>
+  </div>
+  <div class="content-pad">
+    <div class="card mb-4">
+      <div class="card-header">
+        <span class="card-title">Zombie API Registry — Critical Endpoints</span>
+        <button class="btn btn-ghost btn-sm" onclick="showDashPage('apis')">View all 847 →</button>
+      </div>
+      <div class="table-scroll">
+      <table class="data-table">
+        <thead><tr><th>Endpoint</th><th>Auth</th><th>Last Active</th><th>CVEs</th><th>Risk Score</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td><span class="endpoint">/api/v0/user-data</span></td><td style="color:var(--red2);">None</td><td style="color:var(--muted);">730d ago</td><td style="color:var(--red2);">3 ⚠</td><td><div class="score-wrap"><div class="score-track"><div class="score-fill" style="width:99%;background:var(--red2);"></div></div><span style="color:var(--red2);font-weight:600;font-size:11px;">99</span></div></td><td><span class="risk-badge badge-ghost">GHOST</span></td><td><button class="btn btn-danger btn-sm">Quarantine</button></td></tr>
+          <tr><td><span class="endpoint">/internal/admin-reset</span></td><td style="color:var(--red2);">None</td><td style="color:var(--muted);">1100d ago</td><td style="color:var(--red2);">5 ⚠</td><td><div class="score-wrap"><div class="score-track"><div class="score-fill" style="width:97%;background:var(--red2);"></div></div><span style="color:var(--red2);font-weight:600;font-size:11px;">97</span></div></td><td><span class="risk-badge badge-ghost">GHOST</span></td><td><button class="btn btn-danger btn-sm">Quarantine</button></td></tr>
+          <tr><td><span class="endpoint">/api/v0/legacy-payment</span></td><td style="color:var(--amber2);">Basic</td><td style="color:var(--muted);">540d ago</td><td style="color:var(--amber2);">2 ⚠</td><td><div class="score-wrap"><div class="score-track"><div class="score-fill" style="width:91%;background:var(--amber2);"></div></div><span style="color:var(--amber2);font-weight:600;font-size:11px;">91</span></div></td><td><span class="risk-badge badge-zombie">ZOMBIE</span></td><td><button class="btn btn-danger btn-sm">Quarantine</button></td></tr>
+          <tr><td><span class="endpoint">/api/v1/batch-export</span></td><td style="color:var(--muted);">API Key</td><td style="color:var(--muted);">290d ago</td><td style="color:var(--amber2);">1 ⚠</td><td><div class="score-wrap"><div class="score-track"><div class="score-fill" style="width:74%;background:var(--amber2);"></div></div><span style="color:var(--amber2);font-weight:600;font-size:11px;">74</span></div></td><td><span class="risk-badge badge-zombie">ZOMBIE</span></td><td><button class="btn btn-ghost btn-sm">Review</button></td></tr>
+          <tr><td><span class="endpoint">/api/v2/transfer</span></td><td style="color:var(--teal2);">OAuth2</td><td style="color:var(--muted);">Today</td><td style="color:var(--muted);">0</td><td><div class="score-wrap"><div class="score-track"><div class="score-fill" style="width:8%;background:var(--teal2);"></div></div><span style="color:var(--teal2);font-weight:600;font-size:11px;">8</span></div></td><td><span class="risk-badge badge-active">ACTIVE</span></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header"><span class="card-title">API Network Topology</span><span style="font-size:10px;color:var(--muted);">live · click node for details</span></div>
+        <div class="card-body">
+          <div class="net-map-placeholder">
+            <svg width="60" height="40" viewBox="0 0 60 40">
+              <circle cx="30" cy="8" r="6" fill="#2563EB" opacity=".8"/>
+              <circle cx="10" cy="28" r="5" fill="#22C55E" opacity=".8"/>
+              <circle cx="22" cy="30" r="5" fill="#F59E0B" opacity=".8"/>
+              <circle cx="38" cy="30" r="6" fill="#EF4444" opacity=".9"/>
+              <circle cx="50" cy="28" r="6" fill="#EF4444" opacity=".9"/>
+              <line x1="30" y1="14" x2="10" y2="23" stroke="#334155" stroke-width="1"/>
+              <line x1="30" y1="14" x2="22" y2="25" stroke="#334155" stroke-width="1"/>
+              <line x1="30" y1="14" x2="38" y2="24" stroke="#334155" stroke-width="1"/>
+              <line x1="30" y1="14" x2="50" y2="23" stroke="#334155" stroke-width="1"/>
+            </svg>
+            <span style="font-size:11px;color:#334155;">D3.js Force Graph</span>
+            <span style="font-size:10px;color:#1E3A5F;">🟢 Active  🟡 Dormant  🔴 Zombie  🟣 Ghost</span>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Live Alert Feed</span>
+          <span style="font-size:9px;font-weight:600;color:var(--red2);border:1px solid rgba(220,38,38,.3);padding:2px 6px;border-radius:3px;animation:blink 1.5s infinite;">● LIVE</span>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-crit">Resurrection detected: /api/v0/user-data received 54 requests in 60s<div class="alert-time">14:23:07 today</div></div>
+          <div class="alert alert-high">Brute force: 127 failed auth attempts on /internal/admin-reset<div class="alert-time">14:22:41 today</div></div>
+          <div class="alert alert-info">Scan complete: 847 endpoints scanned · 23 flagged · report ready<div class="alert-time">14:19:01 today</div></div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderAPIs() {
+  const apis = [
+    ['/api/v0/user-data','GET','None','730d ago','3','99','GHOST'],
+    ['/internal/admin-reset','POST','None','1100d ago','5','97','GHOST'],
+    ['/api/v0/legacy-payment','POST','Basic','540d ago','2','91','ZOMBIE'],
+    ['/api/v1/batch-export','GET','API Key','290d ago','1','74','ZOMBIE'],
+    ['/api/v0/account-info','GET','Basic','180d ago','1','68','ZOMBIE'],
+    ['/internal/debug-log','GET','None','420d ago','0','62','ZOMBIE'],
+    ['/api/v1/transfer','POST','JWT','1d ago','0','12','ACTIVE'],
+    ['/api/v2/accounts','GET','OAuth2','Today','0','8','ACTIVE'],
+  ];
+  const badgeMap = {GHOST:'badge-ghost',ZOMBIE:'badge-zombie',ACTIVE:'badge-active',DORMANT:'badge-dormant'};
+  const colorMap = {GHOST:'var(--red2)',ZOMBIE:'var(--amber2)',ACTIVE:'var(--teal2)',DORMANT:'var(--amber2)'};
+  return `
+  <div class="content-header">
+    <div><div class="content-title">API Registry</div><div class="content-sub">Complete inventory of all 847 discovered endpoints</div></div>
+    <div class="header-actions">
+      <select style="font-size:12px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--white);">
+        <option>All statuses</option><option>Ghost</option><option>Zombie</option><option>Active</option>
+      </select>
+      <button class="btn btn-primary btn-sm">Export Report</button>
+    </div>
+  </div>
+  <div style="padding:16px 24px;">
+    <div class="card">
+      <div class="table-scroll">
+      <table class="data-table">
+        <thead><tr><th>Endpoint</th><th>Method</th><th>Auth</th><th>Last Active</th><th>CVEs</th><th>Risk Score</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>${apis.map(([ep,method,auth,last,cves,score,status]) => `
+          <tr>
+            <td><span class="endpoint">${ep}</span></td>
+            <td style="color:var(--muted);font-size:11px;">${method}</td>
+            <td style="color:${auth==='None'?'var(--red2)':auth==='Basic'?'var(--amber2)':'var(--muted)'};">${auth}</td>
+            <td style="color:var(--muted);">${last}</td>
+            <td style="color:${parseInt(cves)>0?'var(--red2)':'var(--muted)'};">${parseInt(cves)>0?cves+' ⚠':'—'}</td>
+            <td><div class="score-wrap"><div class="score-track"><div class="score-fill" style="width:${score}%;background:${colorMap[status]||'var(--muted)'};"></div></div><span style="color:${colorMap[status]};font-weight:600;font-size:11px;">${score}</span></div></td>
+            <td><span class="risk-badge ${badgeMap[status]||''}">${status}</span></td>
+            <td>${parseInt(score)>=80?`<button class="btn btn-danger btn-sm">Quarantine</button>`:`<button class="btn btn-ghost btn-sm">Review</button>`}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderSimulation() {
+  return `
+  <div class="content-header">
+    <div><div class="content-title">Hacker Simulation Mode</div><div class="content-sub">Controlled sandbox · Real attack techniques · Local environment</div></div>
+    <div class="header-actions">
+      <button class="btn btn-ghost btn-sm" onclick="resetSim()">↺ Reset</button>
+      <button class="btn btn-danger" id="simBtn" onclick="startSim()">▶ Launch Attack</button>
+    </div>
+  </div>
+  <div style="padding:16px 24px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+      <span style="font-size:12px;color:var(--muted);">Target API:</span>
+      <select style="font-size:12px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--white);flex:1;max-width:300px;">
+        <option>/api/v0/user-data — Ghost · Score 99</option>
+        <option>/internal/admin-reset — Ghost · Score 97</option>
+        <option>/api/v0/legacy-payment — Zombie · Score 91</option>
+      </select>
+    </div>
+    <div class="sim-stages">
+      <div class="sim-stage" id="st-0">① Recon</div>
+      <div class="sim-stage" id="st-1">② Fingerprint</div>
+      <div class="sim-stage" id="st-2">③ Brute Force</div>
+      <div class="sim-stage" id="st-3">④ Exfiltrate</div>
+      <div class="sim-stage" id="st-4">⑤ VS Blocks</div>
+    </div>
+    <div class="sim-grid">
+      <div class="terminal">
+        <div class="term-bar"><div class="term-dot" style="background:#EF4444;"></div><span class="term-title" style="color:#EF4444;">🔴 ATTACKER</span></div>
+        <div class="term-body" id="atk-term"><div class="tl tl-dim">Waiting to start attack...</div><div class="tl tl-dim">Target: /api/v0/user-data</div><div class="tl tl-dim">Mode: Zombie API Exploitation</div></div>
+      </div>
+      <div class="terminal">
+        <div class="term-bar"><div class="term-dot" style="background:#10B981;"></div><span class="term-title" style="color:#10B981;">🛡️ VAULT SENTINEL</span></div>
+        <div class="term-body" id="def-term"><div class="tl tl-blue">VAULT SENTINEL v1.0 ACTIVE</div><div class="tl tl-dim">Monitoring 847 API endpoints...</div><div class="tl tl-dim">Threat level: <span style="color:#34D399;">NOMINAL</span></div><div class="tl tl-dim">Waiting for events...</div></div>
+      </div>
+    </div>
+    <div class="dmg-grid">
+      <div>
+        <div class="dmg-label" style="color:var(--red2);">Without Vault Sentinel</div>
+        <div class="dmg-track"><div class="dmg-fill" id="dmg-bar" style="width:0%;background:var(--red2);"></div></div>
+        <div class="dmg-text" id="dmg-txt" style="color:var(--red2);">0 records leaked</div>
+      </div>
+      <div>
+        <div class="dmg-label" style="color:var(--teal2);">With Vault Sentinel</div>
+        <div class="dmg-track"><div class="dmg-fill" id="save-bar" style="width:0%;background:var(--teal2);"></div></div>
+        <div class="dmg-text" id="save-txt" style="color:var(--teal2);">0 records protected</div>
+      </div>
+    </div>
+    <div class="card mt-4">
+      <div class="card-header"><span class="card-title">Gemini AI Analysis</span></div>
+      <div class="card-body" id="ai-analysis" style="font-size:12px;color:var(--muted);line-height:1.7;">
+        AI explanation will appear after the simulation runs...
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderOWASP() {
+  const rules = [
+    ['API1','Broken Object Level Auth','PASS',''],
+    ['API2','Broken Authentication','FAIL','No auth — trivially brute-forced'],
+    ['API3','Broken Object Property Auth','FAIL','PAN/account numbers in response'],
+    ['API4','Unrestricted Resource Consumption','FAIL','No rate limiting detected'],
+    ['API5','Broken Function Level Auth','PASS',''],
+    ['API6','Unrestricted Sensitive Flows','WARN','Payment flows unthrottled'],
+    ['API7','Server Side Request Forgery','PASS',''],
+    ['API8','Security Misconfiguration','FAIL','Apache/2.2.15 version exposed'],
+    ['API9','Improper Assets Management','FAIL','Undocumented · No owner assigned'],
+    ['API10','Unsafe Consumption of APIs','WARN','Input sanitisation missing'],
+  ];
+  return `
+  <div class="content-header">
+    <div><div class="content-title">OWASP Top 10 API Scanner</div><div class="content-sub">Automated checks against all 10 globally recognised API security risk categories</div></div>
+    <div class="header-actions">
+      <select style="font-size:12px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--white);">
+        <option>/api/v0/user-data — Ghost · 99/100</option>
+        <option>/internal/admin-reset — Ghost · 97/100</option>
+      </select>
+      <button class="btn btn-primary btn-sm">▶ Run OWASP Scan</button>
+    </div>
+  </div>
+  <div style="padding:16px 24px;">
+    <div class="card mb-4">
+      <div class="card-header"><span class="card-title">Scan Results — Score: 3/10 · CRITICAL RISK</span><span style="font-size:11px;color:var(--red2);font-weight:600;">5 FAILS · 2 WARNS</span></div>
+      <div style="padding:0 16px 8px;">
+        ${rules.map(([id,name,result,detail]) => `
+        <div class="owasp-row">
+          <span class="owasp-id">${id}</span>
+          <span class="owasp-name">${name}</span>
+          ${detail ? `<span class="owasp-detail">${detail}</span>` : ''}
+          <span class="owasp-result res-${result.toLowerCase()}">${result}</span>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-danger" onclick="showDashPage('quarantine')">Quarantine This API</button>
+      <button class="btn btn-ghost">Export OWASP Report</button>
+    </div>
+  </div>`;
+}
+
+function renderQuarantine() {
+  const qApis = [
+    ['/api/v0/user-data','99','14:23:07','Resurrection attack detected'],
+    ['/internal/admin-reset','97','14:22:41','Brute force — 127 attempts/min'],
+    ['/api/v0/legacy-payment','91','13:58:22','Score threshold crossed (>85)'],
+    ['/api/v0/account-export','87','13:44:01','Score threshold crossed (>85)'],
+    ['/internal/debug-log','86','12:30:11','Score threshold crossed (>85)'],
+    ['/api/v0/user-session','85','11:15:44','Manual quarantine by analyst'],
+  ];
+  return `
+  <div class="content-header">
+    <div><div class="content-title">Auto-Quarantine Engine</div><div class="content-sub">6 APIs currently blocked at gateway · Threshold: 85/100</div></div>
+    <button class="btn btn-ghost btn-sm" style="align-self:center;">+ Manual Quarantine</button>
+  </div>
+  <div style="padding:16px 24px;">
+    <div class="card mb-4">
+      <div class="card-body">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <span style="font-size:12px;color:var(--muted);">Quarantine threshold:</span>
+          <input type="range" min="60" max="100" value="85" style="flex:1;max-width:220px;">
+          <span style="font-size:15px;font-weight:600;color:var(--text);min-width:32px;">85</span>
+          <span style="font-size:11px;color:var(--muted);">APIs above this score are auto-blocked</span>
+        </div>
+      </div>
+    </div>
+    <div class="card mb-4">
+      <div class="card-header"><span class="card-title">Quarantined APIs (6 blocked)</span></div>
+      <div style="padding:0 16px 8px;">
+        ${qApis.map(([ep,score,time,reason]) => `
+        <div class="q-item">
+          <span class="q-ep">${ep}</span>
+          <span class="q-score">${score}</span>
+          <span class="q-time">${time}</span>
+          <span style="font-size:10px;color:var(--muted);flex:1;">${reason}</span>
+          <button class="btn btn-ghost btn-sm">Unblock</button>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Trigger Log</span></div>
+      <div class="card-body">
+        <div class="alert alert-crit">14:23:07 — Resurrection attack on /api/v0/user-data — score 99 — AUTO BLOCKED<div class="alert-time">Trigger: Resurrection detection · Response time: 0.3s</div></div>
+        <div class="alert alert-high">14:22:41 — Brute force 127 attempts on /internal/admin-reset — AUTO BLOCKED<div class="alert-time">Trigger: Failed auth threshold exceeded</div></div>
+        <div class="alert alert-high">13:58:22 — Score threshold crossed: /api/v0/legacy-payment scored 91 — AUTO BLOCKED<div class="alert-time">Trigger: Risk score > 85</div></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderHoneypot() {
+  return `
+  <div class="content-header">
+    <div><div class="content-title">HoneyTrap System</div><div class="content-sub">3 active decoy endpoints · 4 attackers caught · Zero false positives</div></div>
+    <button class="btn btn-success btn-sm">+ Deploy New Honeypot</button>
+  </div>
+  <div style="padding:16px 24px;">
+    <div class="grid-2 mb-4">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Active Honeypots</span></div>
+        <div style="padding:0 16px 8px;">
+          <div class="honey-item"><span class="honey-ep">/api/v0/legacy-data</span><span class="honey-armed">Armed</span><span class="honey-hits">3 hits</span><button class="btn btn-ghost btn-sm">Disarm</button></div>
+          <div class="honey-item"><span class="honey-ep">/internal/admin-credentials</span><span class="honey-armed">Armed</span><span class="honey-hits">1 hit</span><button class="btn btn-ghost btn-sm">Disarm</button></div>
+          <div class="honey-item"><span class="honey-ep">/api/v0/swagger.json</span><span class="honey-armed">Armed</span><span class="honey-hits">0 hits</span><button class="btn btn-ghost btn-sm">Disarm</button></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Attacker Hit Log</span></div>
+        <div class="card-body">
+          <div class="alert alert-crit">IP: 192.168.1.45 hit /api/v0/legacy-data · GET · Auto-banned<div class="alert-time">14:23:07 · User-Agent: sqlmap/1.6</div></div>
+          <div class="alert alert-crit">IP: 10.0.0.99 hit /internal/admin-credentials · POST: admin:admin · Auto-banned<div class="alert-time">13:58:01 · Payload captured</div></div>
+          <div class="alert alert-high">IP: 172.16.0.55 hit /api/v0/legacy-data · GET · Auto-banned<div class="alert-time">13:22:44 · User-Agent: Nmap</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Deploy New HoneyTrap</span></div>
+      <div class="card-body">
+        <div class="grid-2" style="margin-bottom:14px;">
+          <div>
+            <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px;">Endpoint path</label>
+            <input type="text" placeholder="/api/v0/secret-data" style="width:100%;padding:7px 10px;border-radius:6px;border:1px solid var(--border);font-size:12px;">
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px;">Response type</label>
+            <select style="width:100%;padding:7px 10px;border-radius:6px;border:1px solid var(--border);font-size:12px;background:var(--white);">
+              <option>Fake customer data (Faker)</option>
+              <option>Fake config / credentials</option>
+              <option>Fake API documentation</option>
+              <option>Custom response</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px;">Auto-ban attacker IP?</label>
+            <select style="width:100%;padding:7px 10px;border-radius:6px;border:1px solid var(--border);font-size:12px;background:var(--white);">
+              <option>Yes — auto-ban immediately</option>
+              <option>No — alert only</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px;">Alert severity</label>
+            <select style="width:100%;padding:7px 10px;border-radius:6px;border:1px solid var(--border);font-size:12px;background:var(--white);">
+              <option>CRITICAL</option><option>HIGH</option><option>MEDIUM</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-success">Deploy HoneyTrap</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderCompliance() {
+  const frameworks = [
+    ['RBI IT Framework 2021', 72, 'var(--mid)'],
+    ['PCI-DSS 4.0', 68, 'var(--mid)'],
+    ['OWASP API Top 10', 80, 'var(--teal2)'],
+    ['DPDP Act 2023', 55, 'var(--amber2)'],
+  ];
+  const owaspMap = [
+    ['API1','Object Level Auth','PASS'],
+    ['API2','Broken Authentication','FAIL'],
+    ['API5','Function Level Auth','WARN'],
+    ['API8','Misconfiguration','FAIL'],
+    ['API9','Assets Management','FAIL'],
+  ];
+  return `
+  <div class="content-header">
+    <div><div class="content-title">Compliance Dashboard</div><div class="content-sub">RBI IT Framework 2021 · PCI-DSS 4.0 · OWASP API Top 10 · DPDP Act 2023</div></div>
+    <div class="header-actions">
+      <button class="btn btn-primary btn-sm">Generate RBI Report</button>
+      <button class="btn btn-ghost btn-sm">Generate PCI-DSS Report</button>
+    </div>
+  </div>
+  <div style="padding:16px 24px;">
+    <div class="grid-2 mb-4">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Framework Coverage</span></div>
+        <div class="card-body">
+          ${frameworks.map(([name,pct,color]) => `
+          <div class="comp-bar-wrap">
+            <div class="comp-row"><span style="color:var(--text);">${name}</span><span style="font-weight:600;color:${color};">${pct}%</span></div>
+            <div class="comp-track"><div class="comp-fill" style="width:${pct}%;background:${color};"></div></div>
+          </div>`).join('')}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">OWASP API Top 10 Mapping</span></div>
+        <div style="padding:0 16px 8px;">
+          ${owaspMap.map(([id,name,result]) => `
+          <div class="owasp-row">
+            <span class="owasp-id">${id}</span>
+            <span class="owasp-name">${name}</span>
+            <span class="owasp-result res-${result.toLowerCase()}">${result}</span>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Open Issues Requiring Action</span></div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
+          <div style="text-align:center;padding:16px;background:var(--light);border-radius:8px;border:1px solid var(--border);"><div style="font-size:24px;font-weight:600;color:var(--red2);">23</div><div style="font-size:11px;color:var(--muted);">APIs need review</div></div>
+          <div style="text-align:center;padding:16px;background:var(--light);border-radius:8px;border:1px solid var(--border);"><div style="font-size:24px;font-weight:600;color:var(--amber2);">4</div><div style="font-size:11px;color:var(--muted);">Critical unpatched CVEs</div></div>
+          <div style="text-align:center;padding:16px;background:var(--light);border-radius:8px;border:1px solid var(--border);"><div style="font-size:24px;font-weight:600;color:var(--teal2);">6</div><div style="font-size:11px;color:var(--muted);">APIs quarantined</div></div>
+        </div>
+        <button class="btn btn-primary">Generate Full Compliance PDF Report</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderAlerts() {
+  const alerts = [
+    ['crit','Resurrection DETECTED: /api/v0/user-data received 54 requests in 60s — zombie API probing in progress','14:23:07'],
+    ['crit','Brute Force: 127 failed authentication attempts on /internal/admin-reset in 2 minutes','14:22:41'],
+    ['high','CVE-2021-41773 exploitation attempt detected on /api/v0/user-data','14:22:18'],
+    ['high','Auto-quarantine triggered: /api/v0/legacy-payment (score 91) blocked at gateway','14:21:55'],
+    ['high','New zombie API discovered: /api/v0/account-info — not in OpenAPI spec, dormant 180 days','14:20:33'],
+    ['high','HoneyTrap hit: /api/v0/legacy-data accessed by IP 192.168.1.45 — auto-banned','14:19:55'],
+    ['info','Scan complete: 847 endpoints scanned, 23 flagged, 4 critical — full report available','14:19:01'],
+  ];
+  return `
+  <div class="content-header">
+    <div><div class="content-title">Alert Feed</div><div class="content-sub">Real-time security events across all monitored APIs</div></div>
+    <div class="header-actions">
+      <select style="font-size:12px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--white);">
+        <option>All types</option><option>Critical</option><option>High</option><option>Info</option>
+      </select>
+      <button class="btn btn-ghost btn-sm">Export Audit Trail</button>
+    </div>
+  </div>
+  <div style="padding:16px 24px;">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Today · 7 Events</span><span style="font-size:10px;font-weight:600;color:var(--red2);animation:blink 1.5s infinite;">● LIVE</span></div>
+      <div class="card-body">
+        ${alerts.map(([type,msg,time]) => `
+        <div class="alert alert-${type}">
+          ${msg}
+          <div class="alert-time">${time} today</div>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── SIMULATION LOGIC ──────────────────────────
+let simRunning = false;
+
+function initSimulation() { simRunning = false; }
+
+function addAtk(html) {
+  const t = document.getElementById('atk-term');
+  if (t) { t.innerHTML += html + '<br>'; t.scrollTop = t.scrollHeight; }
+}
+function addDef(html) {
+  const t = document.getElementById('def-term');
+  if (t) { t.innerHTML += html + '<br>'; t.scrollTop = t.scrollHeight; }
+}
+function setStage(i, cls) {
+  const el = document.getElementById('st-' + i);
+  if (el) el.className = 'sim-stage ' + cls;
+}
+
+function resetSim() {
+  simRunning = false;
+  const atk = document.getElementById('atk-term');
+  const def = document.getElementById('def-term');
+  if (atk) atk.innerHTML = '<div class="tl tl-dim">Waiting to start attack...</div><div class="tl tl-dim">Target: /api/v0/user-data</div>';
+  if (def) def.innerHTML = '<div class="tl tl-blue">VAULT SENTINEL v1.0 ACTIVE</div><div class="tl tl-dim">Monitoring 847 API endpoints...</div><div class="tl tl-dim">Threat level: <span style="color:#34D399;">NOMINAL</span></div>';
+  const dmg = document.getElementById('dmg-bar');
+  const save = document.getElementById('save-bar');
+  const dmgTxt = document.getElementById('dmg-txt');
+  const saveTxt = document.getElementById('save-txt');
+  if (dmg) dmg.style.width = '0%';
+  if (save) save.style.width = '0%';
+  if (dmgTxt) dmgTxt.textContent = '0 records leaked';
+  if (saveTxt) saveTxt.textContent = '0 records protected';
+  const ai = document.getElementById('ai-analysis');
+  if (ai) ai.innerHTML = 'AI explanation will appear after the simulation runs...';
+  const btn = document.getElementById('simBtn');
+  if (btn) { btn.textContent = '▶ Launch Attack'; btn.className = 'btn btn-danger'; }
+  for (let i = 0; i < 5; i++) setStage(i, '');
+}
+
+function startSim() {
+  if (simRunning) return;
+  simRunning = true;
+  resetSim();
+  simRunning = true;
+  const btn = document.getElementById('simBtn');
+  if (btn) btn.textContent = '⟳ Running...';
+
+  // Stage 1
+  setTimeout(() => { setStage(0, 'active'); addAtk('<span class="tl-amber">[ STAGE 1 ] RECONNAISSANCE</span>'); addAtk('<span class="tl-dim">Scanning IP range for open endpoints...</span>'); }, 300);
+  setTimeout(() => { addAtk('<span class="tl-red">GET /api/v0/ → 200 FOUND ✓</span>'); addAtk('<span class="tl-red">GET /internal/ → 200 FOUND ✓</span>'); addAtk('<span class="tl-red">Target selected: /api/v0/user-data</span>'); setStage(0, 'done'); addDef('<span class="tl-dim">Scanning traffic patterns...</span>'); }, 1800);
+
+  // Stage 2
+  setTimeout(() => { setStage(1, 'active'); addAtk('<span class="tl-amber">[ STAGE 2 ] FINGERPRINTING</span>'); addAtk('<span class="tl-dim">Reading response headers...</span>'); }, 2600);
+  setTimeout(() => { addAtk('<span class="tl-red">Server: Apache/2.2.15 (outdated)</span>'); addAtk('<span class="tl-red">Auth: NONE detected</span>'); addAtk('<span class="tl-red">No rate limiting detected</span>'); addAtk('<span class="tl-red">CVE-2021-41773 applicable → CRITICAL</span>'); setStage(1, 'done'); }, 4000);
+
+  // Stage 3
+  setTimeout(() => { setStage(2, 'active'); addAtk('<span class="tl-amber">[ STAGE 3 ] BRUTE FORCE</span>'); addDef('<span class="tl-amber">⚠ ANOMALY: Unusual traffic pattern detected</span>'); }, 4800);
+  const creds = [['admin','admin'],['admin','password'],['service','service'],['service','service123']];
+  creds.forEach(([u,p], i) => {
+    setTimeout(() => {
+      if (i < 3) addAtk(`<span class="tl-dim">Trying ${u}:${p} → 401</span>`);
+      else { addAtk(`<span class="tl-red">Trying ${u}:${p} → 200 BREACH ✓</span>`); setStage(2, 'done'); addDef('<span class="tl-red">🚨 CRITICAL: Brute force succeeded!</span>'); }
+    }, 5400 + i * 500);
+  });
+
+  // Stage 4
+  setTimeout(() => {
+    setStage(3, 'active');
+    addAtk('<span class="tl-amber">[ STAGE 4 ] DATA EXFILTRATION</span>');
+    addAtk('<span class="tl-red">GET /api/v0/user-data?limit=999999</span>');
+    let leaked = 0;
+    const leak = setInterval(() => {
+      leaked += Math.floor(Math.random() * 600 + 300);
+      const pct = Math.min(leaked / 50000 * 100, 78);
+      const dmg = document.getElementById('dmg-bar');
+      const dmgTxt = document.getElementById('dmg-txt');
+      if (dmg) dmg.style.width = pct + '%';
+      if (dmgTxt) dmgTxt.textContent = leaked.toLocaleString() + ' records leaked...';
+      addAtk(`<span class="tl-red">Received ${leaked.toLocaleString()} records...</span>`);
+      if (leaked >= 3200) clearInterval(leak);
+    }, 500);
+
+    // Stage 5
+    setTimeout(() => {
+      clearInterval(leak);
+      setStage(3, 'blocked');
+      setStage(4, 'active');
+      addDef('<span style="color:#60A5FA;font-weight:600;">━━━ VAULT SENTINEL ACTIVATED ━━━</span>');
+      addDef('<span class="tl-green">✓ API quarantined at gateway layer</span>');
+      addDef('<span class="tl-green">✓ Attacker IP 192.168.1.45 banned</span>');
+      addDef('<span class="tl-green">✓ All connections terminated</span>');
+      addDef('<span class="tl-green">✓ Incident report auto-generated</span>');
+      addDef('<span class="tl-green">✓ RBI breach notification drafted</span>');
+      addDef(`<span style="color:#34D399;font-weight:600;">RESULT: 0 records leaked with Vault Sentinel</span>`);
+      const save = document.getElementById('save-bar');
+      const saveTxt = document.getElementById('save-txt');
+      if (save) save.style.width = '100%';
+      if (saveTxt) saveTxt.textContent = '50,000 records protected';
+      setStage(4, 'done');
+      const btn = document.getElementById('simBtn');
+      if (btn) { btn.textContent = '✓ Attack Stopped'; btn.className = 'btn btn-ghost'; }
+      const ai = document.getElementById('ai-analysis');
+      if (ai) ai.innerHTML = '<strong style="color:var(--cyan);">Gemini AI:</strong> The endpoint <code style="color:var(--red2);">/api/v0/user-data</code> was dormant for 730 days with no authentication and 3 critical CVEs (CVSS 9.8). Vault Sentinel detected the resurrection event within seconds, identified brute-force credential stuffing, and quarantined the endpoint in 0.3 seconds — preventing full exfiltration of 50,000 customer records containing PAN numbers, account details and transaction history. <strong>Recommended action:</strong> Permanently decommission this endpoint and review all other APIs inactive for more than 90 days.';
+    }, 9000);
+  }, 7500);
+}
+
+// ── INIT ──────────────────────────────────────
+goTo('landing');
+
+function scrollToSection(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var top = el.getBoundingClientRect().top + window.pageYOffset - 60;
+  window.scrollTo({ top: top, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
